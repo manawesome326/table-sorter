@@ -21,10 +21,14 @@ class Student:
 #example students
 #add new ones by pasting more below here with this exact syntax
 #make sure to get the names right!
-#I might be able to help you convert other formats into this
+#the first name is the person's name. The stuff in the curly brackets is the other people,
+#and how much this person wants to be in a group with them. 
+#For example here greg has given jordan a rating of -1, and alexandria a rating of -0.99
+#I might be able to help you convert other formats into this if you need it. I admit it's not the most convenient.
 Student("greg",{"jordan":-1,"alexandria":-0.99})
 Student("jordan",{"greg":1,"alexandria":100})
 Student("alexandria",{"greg":0.2,"jordan":1})
+
 #and so on
 
 
@@ -35,7 +39,10 @@ value_of_unknown_people = 0 #If you want people to meet new people, set this hig
 #This is a completely untested feature. 0 is probably a good value. Anything more than 20% of the range people are setting preferences in is probably very silly.
 
 #Preferences can be any number, including negatives and decimals.
-#Use of precise decimals prevents some bugs, so encourage it! 
+#Use of precise decimals prevents some minor weirdness that (might) worsen your results
+#So ask your respondents to be as precise as they like in their rankings!
+#Failing that, set the below value to True to run some code to jitter the values a little...
+jitter = False
 #Negative numbers are treated differently by the code - ask people to only use them on people they really do not want to share a group with!
 
 
@@ -50,12 +57,13 @@ t_pop = 5 #and how many people go on each table
 #However, it is fine to have too many tables for the person count!
 
 goes = 10 #Adjust this value upwards if the program finishes too fast! 
-#A good 15 minute run will help find the best groups, especially if there's a lot of people.
+#A good 5 minute run will help find the best groups, especially if there's a lot of people.
 #On the other hand, if it seems to be taking a very long time, lower the value and accept that things won't quite be perfect.
-#No matter how many attempts you take and thus what result you get, it'll be *very* unlikely that any singular swap of people will improve the rating of it.
+#No matter how many attempts you take and thus what result you get, it'll be very unlikely that any singular swap of people will improve the rating of it.
 
 #no more config options are below this line.
 #################################################################
+
 for i in range(robots_to_add):
 	Student("robot " + str(i),{},True)
 tables = []
@@ -65,11 +73,12 @@ count = 0
 ghostly_hatred = {}
 
 
+
 for thing in allstudents:
 	if thing.robot:
 		for i in range(10):
 			this = random.choice(allstudents)
-			thing.friends[this] = random.uniform(-1,1.5)
+			thing.friends[this] = random.randint(-10,10)
 			print(thing.name + " thinks " + this.name + " is worth "  + str(thing.friends[this]))
 		#only used for the robot people
 	else:
@@ -114,7 +123,10 @@ for student in allstudents:
 			friend.friends[student] = student.friends[friend]/2
 			print(friend.name + " has never heard of " + student.name + ", but now dislikes them with a value of " + str(friend.friends[student]))
 
-
+if jitter:
+	for student in allstudents:
+		for friend in student.friends.keys():
+			student.friends[friend] = student.friends[friend] + random.uniform(0.00001,0.00002)
 
 def score_eval(tables):
 	score = 0
@@ -132,7 +144,7 @@ def score_eval(tables):
 	return score
 
 
-print("Random happiness: " +  str(score_eval(tables)))
+print("Basic happiness: " +  str(score_eval(tables)))
 initial_tables = copy.deepcopy(tables)
 
 
@@ -141,8 +153,9 @@ def test(no_leeching, randomer):
 	world_record = score_eval(initial_tables)
 	give_up = 0
 	record_breaks = 0
-	done = ((len(allstudents)*len(allstudents))-t_pop+1)*10
-	maximum_boredom = done/10
+	maximum_swaps = int(t_pop*t_pop*(math.factorial(total_tables)/(math.factorial(total_tables-2)*2)))
+	print("maximum should be " +str(maximum_swaps))
+	maximum_boredom = maximum_swaps*2
 
 	for i in range(goes):
 		print("starting attempt " + str(i))
@@ -151,7 +164,7 @@ def test(no_leeching, randomer):
 
 		#randoming
 		if randomer:
-			for i in range(len(allstudents)*len(allstudents)*10):
+			for i in range(maximum_swaps*4):
 				swap_table_1 = random.choice(tables)
 				swap_table_2 = random.choice(tables)
 				while swap_table_2 == swap_table_1:	
@@ -161,13 +174,19 @@ def test(no_leeching, randomer):
 				swap_table_1[swap_student_1], swap_table_2[swap_student_2] = swap_table_2[swap_student_2], swap_table_1[swap_student_1]
 			print("starting happiness: " + str(score_eval(tables)))
 		boredom = 0
+		attempts = []
 		while True:
-			swap_table_1 = random.choice(tables)
-			swap_table_2 = random.choice(tables)
-			while swap_table_2 == swap_table_1:	
+
+			while True:
+				swap_table_1 = random.choice(tables)
 				swap_table_2 = random.choice(tables)
-			swap_student_1 = random.randint(0,len(swap_table_1)-1)
-			swap_student_2 = random.randint(0,len(swap_table_2)-1)
+				while swap_table_2 == swap_table_1:	
+					swap_table_2 = random.choice(tables)
+				swap_student_1 = random.randint(0,len(swap_table_1)-1)
+				swap_student_2 = random.randint(0,len(swap_table_2)-1)
+				if not (swap_table_1[swap_student_1].name + swap_table_2[swap_student_2].name in attempts):
+					break
+
 			current_score = score_eval(tables)
 			if no_leeching:
 				current_s_1 = score_eval([swap_table_1])
@@ -179,20 +198,28 @@ def test(no_leeching, randomer):
 				new_s_1 = score_eval([swap_table_1])
 				new_s_2 = score_eval([swap_table_2])
 			if (new_score < current_score) or (no_leeching and ((new_s_1 < current_s_1) or (new_s_2 < current_s_2))): 
+				attempts.append(swap_table_1[swap_student_1].name + swap_table_2[swap_student_2].name)
 				swap_table_1[swap_student_1], swap_table_2[swap_student_2] = swap_table_2[swap_student_2], swap_table_1[swap_student_1] 
 				#SEND EM BACK
 				#print(current_score)
 				give_up += 1
 			else:
 				give_up = 0
+				#attempts = []
+				#print("swap!" + str(random.random()))
 				#print(maximum_boredom-boredom)
 				if new_score == current_score:
-					boredom += 1
-					if boredom > maximum_boredom:
-						break
+					#boredom += 1
+					#if boredom > maximum_boredom:
+					#	print("What!")
+					#	break
+					pass
 				else:
-					boredom == 0
-			if give_up > done:
+					boredom = 0
+					attempts = []
+			if len(attempts) > 999999:
+					print(len(attempts))
+			if len(attempts) >= maximum_swaps:
 				break
 		if current_score > world_record:
 			world_record = current_score
@@ -228,3 +255,5 @@ print("Type \"yes\" and hit enter to leave this program. This will likely vanish
 while True:
 	if input("> ")[0] == 'y':
 		break
+
+
