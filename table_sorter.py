@@ -41,10 +41,8 @@ value_of_unknown_people = 0 #If you want people to meet new people, set this hig
 
 #student generator
 #used to generate people ("robots") at random
-#I use this for testing, but I don't think you'll need it?
+#I use this for testing, but I don't think you'll need it? Best just leave it on 0.
 robots_to_add = 0
-
-
 
 total_tables =20 #set to the number of tables, of course
 t_pop = 5 #and how many people go on each table
@@ -226,4 +224,7 @@ test(False, True)
 #In "no leeching" trials, a swap that improves the rating of one table at the expense of another is not allowed.
 #I'm unsure as to whether this actually improves the results you get. Thus why the program gives you results both without and with it.
 
-		
+print("Type \"yes\" and hit enter to leave this program. This will likely vanish your results, so copy them somewhere first! ")
+while True:
+	if input("> ")[0] == 'y':
+		break
